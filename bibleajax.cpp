@@ -1,5 +1,7 @@
 /* Demo server program for Bible lookup using AJAX/CGI interface
  * By James Skon, February 10, 2011
+ * By James Skon, Febrary 10, 2011
+>>>>>>> 6b4ddc98cf2e141101ae943d6c6fac43b1c1fcc5
  * updated by Bob Kasper, January 2020
  * updated by Deborah Wilson, February 2026
  * Mount Vernon Nazarene University
@@ -14,10 +16,10 @@
  *
  * The cgi.getElement function parses the input string, searching for the matching
  * field name, and returning a "form_iterator" object, which contains the actual
+ * field name, and returing a "form_iterator" oject, which contains the actual
  * string the user entered into the corresponding field. The actual values can be
  * accessed by dereferencing the form iterator twice, e.g. **verse
  * refers to the actual string entered in the form's "verse" field.
- *
  * STUDENT NAME: Jesus Emilio Salgado Suarez
  */
 
@@ -28,6 +30,9 @@
 #include "Bible.h"   // to create the bible object
 #include "Ref.h"     // to create the reference object
 #include "Verse.h"   // to create the verse object
+#include "Bible.h"  // to create the bible object
+#include "Ref.h"    // to create the reference object
+#include "Verse.h"  // to create the verse object
 
 /* Required libraries for AJAX to function */
 #include "/home/class/csc3004/cgicc/Cgicc.h"
@@ -37,7 +42,8 @@
 using namespace std;
 using namespace cgicc;
 
-int main() {
+int main() 
+{
    /* A CGI program must send a response header with content type
     * back to the web client before any other output.
     * For an AJAX request, our response is not a complete HTML document,
@@ -74,9 +80,52 @@ int main() {
       bookNum = book->getIntegerValue();
       if (bookNum < 1 || bookNum > 66) {
          cout << "<p>Invalid book number: must be between 1 and 66.</p>" << endl;
+      }
+   }
+
+   bool validInput = false; // Start false; set to true only if all checks pass
+
+   if (chapter == cgi.getElements().end())
+   {
+      cout << "<p>Missing chapter input.</p>" << endl;
+   }
+   else
+   {
+      int chapterNum = chapter->getIntegerValue();
+      if (chapterNum > 150)
+      {
+         cout << "<p>The chapter number (" << chapterNum << ") is too high.</p>" << endl;
+      }
+      else if (chapterNum <= 0)
+      {
+         cout << "<p>The chapter must be a positive number.</p>" << endl;
+      }
+      else
+      {
+         validInput = true;
+      }
+   }
+
+   // TODO: OTHER INPUT VALUE CHECKS ARE NEEDED ... but that's up to you!
+
+   string bookStr = (book != cgi.getElements().end()) ? **book : "";
+   int bookNum = 0;
+   if (bookStr.empty()) {
+      cout << "<p>Book is required.</p>" << endl;
+      validInput = false;
+   } else {
+      try {
+         bookNum = stoi(bookStr);
+         if (bookNum < 1 || bookNum > 66) {
+            cout << "<p>Invalid book number: " << bookStr << " (must be 1-66).</p>" << endl;
+            validInput = false;
+         }
+      } catch (...) {
+         cout << "<p>Book must be a number (1-66).</p>" << endl;
          validInput = false;
       }
    }
+
 
    // Chapter
    int chapterNum = 0;
@@ -187,12 +236,59 @@ int main() {
       }
    }
 
-   /* SEND BACK THE RESULTS
+   // SEND BACK THE RESULTS
+   int chapterNum = (chapter != cgi.getElements().end()) ? chapter->getIntegerValue() : 0;
+   if (chapterNum <= 0 || chapterNum > 150) {
+      cout << "<p>Invalid chapter: must be between 1 and 150.</p>" << endl;
+      validInput = false;
+   }
+
+   int verseNum = (verse != cgi.getElements().end()) ? verse->getIntegerValue() : 0;
+   if (verseNum <= 0 || verseNum > 176) {
+      cout << "<p>Invalid verse: must be between 1 and 176.</p>" << endl;
+      validInput = false;
+   }
+
+   int numVerses = (nv != cgi.getElements().end()) ? nv->getIntegerValue() : 1;
+   if (numVerses <= 0 || numVerses > 50) {
+      cout << "<p>Invalid number of verses: must be between 1 and 50.</p>" << endl;
+      validInput = false;
+   }
+
+   // TODO: PUT CODE HERE TO CALL YOUR BIBLE CLASS FUNCTIONS
+   //        TO LOOK UP THE REQUESTED VERSES
+
+   Verse resultVerse; 
+   LookupResult status = OTHER; // initialize status to other
+
+   string versesOutput = ""; // Added declaration
+
+   if (validInput)
+   {
+      const string bibleFile = "/home/class/csc3004/Bibles/web-complete";//its like the link to the bible 
+      Bible bibleObj(bibleFile); // the bible object points to the bible file
+
+      Ref ref(bookNum, chapterNum, verseNum);
+
+      resultVerse = bibleObj.lookup(ref, status); 
+      if (status != SUCCESS)
+      {
+         cout << "<p>Lookup failed: " << bibleObj.error(status) << "</p>" << endl;
+         validInput = false; 
+      } else {
+         // Start with the first verse
+         versesOutput = resultVerse.getVerse();
+      }
+   }
+   
+   
+    /* SEND BACK THE RESULTS
     * Finally we send the result back to the client on the standard output stream
     * in HTML text format.
     * This string will be inserted as is inside a container on the web page,
     * so we must include HTML formatting commands to make things look presentable!
     */
+
    if (validInput && versesFetched > 0) {
       cout << "Search Type: <b>" << searchType << "</b>" << endl;
       cout << "<p>Your result: " << firstRef.getBookName() << " " << firstRef.getChapter() << ":" << firstRef.getVerse();
@@ -212,7 +308,18 @@ int main() {
          }
          cout << " <em>" << versesOutput << "</em></p>" << endl;
       }
+   if (validInput)
+   {
+      cout << "Search Type: <b>" << **st << "</b>" << endl;
+      cout << "<p>Your result: "
+           << resultVerse.getRef().getBookName() << " " << **chapter << ":" << **verse
+           << "<em> " << versesOutput
+           << "</em></p>" << endl;
+   }
+   else
+   {
+      cout << "<p>Invalid Input: <em>report the more specific problem.</em></p>" << endl;
    }
 
    return 0;
-}
+}}
